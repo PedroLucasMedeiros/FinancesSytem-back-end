@@ -51,15 +51,22 @@ class PlannedBudgetViewSet(CRUDViewSet):
 
 @crud_docs(tag="Lançamentos", singular="lançamento", plural="lançamentos")
 class FinancialTransactionViewSet(CRUDViewSet):
-    """Gestão de lançamentos (receitas e despesas): /api/dashboard/transactions/"""
     permission_classes = [IsAuthenticated]
-    queryset = FinancialTransaction.objects.select_related("person")
+    queryset = FinancialTransaction.objects.select_related("person", "budget")
     serializer_class = FinancialTransactionSerializer
 
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
             return super().get_queryset().none()
-        return super().get_queryset().filter(person__user=self.request.user)
+        queryset = super().get_queryset().filter(person__user=self.request.user)
+        month = self.request.query_params.get("month")  # ex.: 2026-10
+        if month:
+            try:
+                year, month_number = (int(part) for part in month.split("-"))
+                queryset = queryset.filter(transaction_date__year=year, transaction_date__month=month_number)
+            except ValueError:
+                return queryset.none()
+        return queryset
 
 
 @crud_docs(tag="Metas", singular="meta financeira", plural="metas financeiras")

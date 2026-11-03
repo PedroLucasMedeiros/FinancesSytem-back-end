@@ -76,11 +76,28 @@ class FinancialTransactionSerializer(OwnedPersonSerializerMixin, serializers.Mod
     class Meta:
         model = FinancialTransaction
         fields = (
-            "id", "person", "transaction_title", "transaction_date",
-            "transaction_type", "transaction_type_display", "transaction_amount",
+            "id", "person", "person_name", "budget", "budget_title",
+            "transaction_title", "transaction_date", "transaction_type",
+            "transaction_type_display", "transaction_amount",
             "created_at", "updated_at", "deleted_at",
         )
         read_only_fields = READ_ONLY_METADATA
+
+    # Filtro para permitir que o usuário autenticado tenha acesso apenas a seu proprio orçamento
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get("request")
+        budget_field = self.fields.get("budget")
+        if budget_field is not None and request and request.user.is_authenticated:
+            budget_field.queryset = PlannedBudget.objects.filter(person__user=request.user)
+
+    def validate(self, attrs):
+        budget = attrs.get("budget")
+        person = attrs.get("person") or getattr(self.instance, "person", None)
+        if budget and person and budget.person_id != person.id:
+            raise serializers.ValidationError({"budget": "O orçamento pertence a outra pessoa."})
+        return attrs
+
 
     def validate_transaction_amount(self, value):
         # Sempre positivo: o sinal é dado por transaction_type

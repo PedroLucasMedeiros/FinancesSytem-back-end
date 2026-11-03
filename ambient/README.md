@@ -1,33 +1,72 @@
-# Documentação do projeto Financas System
+# Finance System
 
-## Resumo
-O propósito do projeto é um sistema Web feito com uma API RESTful para gestão de ganhos mensais.
-O intuito é facilitar o controle financeiro dos usuários de forma que registre:
+---
 
-- **Fontes de Renda:** Entrada
-- **Planos:** Saída
-- **Saldo do Mês:** Dado
-- **Orçamentos para o Mês X:**
+## Tech Stack & Architecture
 
-    - **Cabeçalho:** Pessoa que vai destinar a verba | Valor destinado para o orçamento daquele mês
+### Backend:
+- **Language:** Python
+- **Framework:** Django & Django REST Framework (DRF)
+- **Authentication:** JWT (JSON Web Token)
+- **Database:** PostgreSQL
+- **API Architecture:** RESTful Standard with custom permission classes, serializers, and custom viewsets with mixins
 
-        - **Reserva:** Porcentagem da entrada dedicada à ação | Valor da porcentagem
-        - **Contas:** Porcentagem da entrada dedicada à ação | Valor da porcentagem
-        - **Pessoal:** Porcentagem da entrada dedicada à ação | Valor da porcentagem
-        - **Mercado:** Porcentagem da entrada dedicada à ação | Valor da porcentagem
+---
 
-    - **Soma das Pessoas Ativas:**
+# 📦 Project Dependencies & Automation
 
-        - **Reserva:** Valor
-        - **Pessoal:** Valor
-        - **Mercado:** Valor
+---
 
-- **Lançamentos do Mês X** (Normalmente operações cadastradas no cartão):
-    - **Card de Lançamento:** Nome dado ao Lançamento | Data | Categoria do tipo de lançamento | Pessoa que recebe | Despesa ou Receita | Valor
 
-- **Dashboard:**
-    - **Gráfico Pizza:** Gastos por Categoria
-    - **Gráfico em Barra:** Entradas e Gastos - Mês X
+> ## 📦 Dependencies (`requirements.txt`)
+>
+> Core packages and libraries powering the backend API:
+>
+> | Package | Version | Description |
+> | :--- | :--- | :--- |
+> | **Django** | `5.0.2` | Core Web Framework |
+> | **djangorestframework** | `3.14.0` | REST API Toolkit |
+> | **djangorestframework-simplejwt** | `5.3.1` | JWT Authentication Provider |
+> | **drf-spectacular** | `>=0.28.0` | OpenAPI 3.0 Schema & Swagger Docs |
+> | **django-cors-headers** | `4.3.1` | Cross-Origin Resource Sharing (CORS) Handling |
+> | **psycopg2-binary** | `2.9.9` | PostgreSQL Database Adapter |
+> | **PyJWT** | `2.8.0` | Python JWT Encoding/Decoding Library |
+> | **django-environ** | `0.11.2` | Environment Variables Management |
+> | **python-dotenv** | `1.0.1` | Reads Key-Value Pairs from `.env` File |
+> | **asgiref** | `3.8.1` | ASGI Specification Standard & Utilities |
+> | **sqlparse** | `0.4.4` | Non-validating SQL Parser |
 
-- **Formulário / Card de Metas:**
-    - **Qual é a Meta:** Valor da Meta | Valor que temos na Reserva
+---
+
+
+> ## ⚙️ Automation Commands (`Makefile`)
+>
+> Shortcuts for managing Docker containers and running management tasks:
+>
+> | Command | Execution / Action | Description |
+> | :--- | :--- | :--- |
+> | `make up` | `build` $\rightarrow$ `docker compose up -d` | Builds images (if needed) and starts containers in detached mode |
+> | `make down` | `docker compose down` | Stops and removes running containers and networks |
+> | `make build` | `docker compose build` | Builds or rebuilds services defined in `docker-compose.yml` |
+> | `make logs` | `docker compose logs -f` | Follows log output from containers in real time |
+> | `make migrate` | `exec web python manage.py migrate` | Applies pending database migrations inside the `web` container |
+> | `make shell` | `exec web python manage.py shell` | Opens an interactive Django Python shell |
+> | `make testDashboard` | `exec web python manage.py test dashboard.tests -v 2` | Runs dashboard unit tests with verbose output (level 2) |
+
+
+---
+
+> ## 🔴 Environment Reset Script (`reset.sh`)
+>
+> Shell script used to perform a full teardown and clean rebuild of the Docker environment.
+>
+> | Command / Script | Execution / Action | Description |
+> | :--- | :--- | :--- |
+> | `./reset.sh` | `down -v` $\rightarrow$ `build --no-cache` | Stops containers, **deletes persistent database volumes**, and forces a complete clean rebuild without cache |
+
+---
+
+> [!WARNING]
+> **Data Loss Warning:** Executing `docker compose down -v` removes all PostgreSQL volumes. All local database records will be erased upon running this script.
+
+

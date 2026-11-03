@@ -15,6 +15,9 @@ logs:
 migrate:
 	docker compose -f docker-compose.yml exec web python manage.py migrate
 
+makemigrations:
+	docker compose -f docker-compose.yml exec web python manage.py makemigrations
+
 shell:
 	docker compose -f docker-compose.yml exec web python manage.py shell
 

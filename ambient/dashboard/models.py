@@ -5,12 +5,16 @@ from django.db import models
 from django.conf import settings
 from core.models import BaseModel
 
+# Constantes de validação monetária (evitam uso de floats e valores negativos)
 MIN_MONEY_VALUE = Decimal("0.00")
 MIN_TRANSACTION_VALUE = Decimal("0.01")
 
 
 class Person(BaseModel):
-    # Vínculo com o usuário autenticado: base do isolamento de dados
+    """
+    Representa o perfil da pessoa no sistema.
+    Faz a ligação entre a conta de autenticação (User) e os dados financeiros.
+    """
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
@@ -20,10 +24,12 @@ class Person(BaseModel):
         verbose_name="usuário",
     )
     name = models.CharField("nome completo", max_length=150)
-    # ... restante igual
 
 
 class PlannedBudget(BaseModel):
+    """
+    Planejamento orçamentário baseado em alocação percentual sobre um valor concedido.
+    """
     person = models.ForeignKey(
         Person,
         on_delete=models.PROTECT,
@@ -54,14 +60,26 @@ class PlannedBudget(BaseModel):
 
     @property
     def allocated_amount(self):
-        """Valor em reais correspondente à porcentagem destinada."""
+        """Calcula dinamicamente o valor em R$ com base na porcentagem e arredonda os centavos."""
         return (self.granted_amount * self.allocated_percentage / Decimal("100")).quantize(Decimal("0.01"))
 
 
 class FinancialTransaction(BaseModel):
+    """
+    Registra as movimentações financeiras de entrada (Receita) e saída (Despesa).
+    """
     class TransactionType(models.TextChoices):
         INCOME = "INCOME", "Receita"
         EXPENSE = "EXPENSE", "Despesa"
+
+    budget = models.ForeignKey(
+        PlannedBudget,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="transactions",
+        verbose_name="orçamento (categoria)",
+    )
 
     person = models.ForeignKey(
         Person,
@@ -76,7 +94,7 @@ class FinancialTransaction(BaseModel):
         max_length=7,
         choices=TransactionType.choices,
     )
-    # Sempre positivo; o sinal é dado por transaction_type
+    # Sempre armazena um valor positivo; a natureza do fluxo é definida por transaction_type
     transaction_amount = models.DecimalField(
         "valor",
         max_digits=12,
@@ -88,16 +106,21 @@ class FinancialTransaction(BaseModel):
         verbose_name = "lançamento"
         verbose_name_plural = "lançamentos"
         ordering = ["-transaction_date", "-created_at"]
+        # Índices otimizam buscas filtradas por pessoa e intervalo de datas em dashboards
         indexes = [
             models.Index(fields=["person", "transaction_date"]),
             models.Index(fields=["person", "transaction_type", "transaction_date"]),
         ]
 
     def __str__(self):
-        return f"{self.transaction_title} - {self.get_transaction_type_display()} R$ {self.transaction_amount}"
+        # Corrigida a quebra de linha incorreta na f-string
+        return f"{self.transaction_title} - {self.get_transaction_type_display()}: R$ {self.transaction_amount}"
 
 
 class FinancialGoal(BaseModel):
+    """
+    Acompanhamento de metas financeiras (ex: reserva de emergência, viagens).
+    """
     person = models.ForeignKey(
         Person,
         on_delete=models.PROTECT,
@@ -131,6 +154,7 @@ class FinancialGoal(BaseModel):
 
     @property
     def progress_percentage(self):
+        """Retorna o progresso atual da meta em porcentagem (máximo 100%)."""
         if not self.target_amount:
             return Decimal("0.00")
         progress = self.current_amount / self.target_amount * Decimal("100")
@@ -138,4 +162,5 @@ class FinancialGoal(BaseModel):
 
     @property
     def is_completed(self):
+        """Informa se a meta foi atingida."""
         return self.current_amount >= self.target_amount

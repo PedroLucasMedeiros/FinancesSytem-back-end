@@ -1,4 +1,7 @@
+# Define os containers da aplicação
 services:
+
+  # Banco de Dados PostgreSQL
   db:
     image: postgres:15-alpine
     container_name: postgres_db
@@ -8,23 +11,30 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
+    # Persistência de dados: mantém os registros do banco salvos permanentemente no volume pgdata
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  # Aplicação Web Django
   web:
+    # Contexto de build: usa a pasta raiz (..) e o Dockerfile localizado em ambient/
     build:
       context: ..
       dockerfile: ambient/Dockerfile
     container_name: django_app
     command: python manage.py runserver 0.0.0.0:8000
+    # Sincronização em tempo real (live reload): mapeia a pasta atual para /app no container
     volumes:
       - .:/app
     ports:
       - "8000:8000"
+    # Variáveis de ambiente: importa configurações sensíveis do arquivo .env
     env_file:
       - .env
+    # Orquestração: garante que o banco suba antes da aplicação web
     depends_on:
       - db
 
+# Declaração do volume global para o PostgreSQL
 volumes:
   pgdata:
